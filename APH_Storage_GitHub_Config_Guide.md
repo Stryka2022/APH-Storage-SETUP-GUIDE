@@ -211,11 +211,9 @@ Recommended default exclusions:
 
 ```json
 "VirtualStorageExcludedContainers": [
-    "LB_Airdrop_Flare_Medical",
-    "LB_Airdrop_Flare_Military",
-    "LB_Airdrop_Flare_Civilian",
-    "LB_Airdrop_Flare_Basebuilding",
-    "LB_Airdrop_Flare_Special",
+    "LB_LC_Base",
+    "LB_Airdrop_Car_Base",
+    "LB_Airdrop_Base",
     "zm_WorkbenchPublic"
 ]
 ```
