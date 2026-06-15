@@ -2,7 +2,7 @@
 
 This guide explains how to install, configure, and manage the **APH Havoc Storage System** for DayZ servers.
 
-APH Storage includes deployable storage, virtual storage, CodeLock support, raiding, dismantling, Discord webhooks, notifications, repair benches, and server-side JSON configuration.
+APH Storage includes deployable storage, virtual storage, CodeLock support, raiding, dismantling, Discord webhooks, notifications, weapon repair benches, whitelist systems, and server-side JSON configuration.
 
 ---
 
@@ -10,11 +10,16 @@ APH Storage includes deployable storage, virtual storage, CodeLock support, raid
 
 - [Installation](#installation)
 - [Generated Config Location](#generated-config-location)
+- [Images For GitHub](#images-for-github)
 - [Main Config Overview](#main-config-overview)
 - [Virtual Storage Setup](#virtual-storage-setup)
+- [Idle-Based Auto Store](#idle-based-auto-store)
+- [Virtual Storage Enabled Containers](#virtual-storage-enabled-containers)
 - [Virtual Storage Exclusions](#virtual-storage-exclusions)
+- [Virtual Storage Messages](#virtual-storage-messages)
 - [CodeLock Support](#codelock-support)
 - [Raiding Setup](#raiding-setup)
+- [Raid Tool Timer & Damage](#raid-tool-timer--damage)
 - [Dismantle Setup](#dismantle-setup)
 - [BreachingCharge / HM-C4 Support](#breachingcharge--hm-c4-support)
 - [Discord Webhook Logs](#discord-webhook-logs)
@@ -22,8 +27,11 @@ APH Storage includes deployable storage, virtual storage, CodeLock support, raid
 - [Weapon Bench Setup](#weapon-bench-setup)
 - [Whitelist Systems](#whitelist-systems)
 - [Admin Reload Keybind](#admin-reload-keybind)
+- [Latest Fixes & Improvements](#latest-fixes--improvements)
 - [Recommended Default Config](#recommended-default-config)
 - [Troubleshooting](#troubleshooting)
+- [Support](#support)
+- [Copyright](#copyright)
 
 ---
 
@@ -39,7 +47,13 @@ Example:
 -mod=@CF;@Dabs Framework;@APH Havoc Storage
 ```
 
-> CodeLock, BreachingCharge, HM-C4, and other supported mods are optional, but must be loaded if you enable their support.
+Optional supported mods can be loaded alongside APH Storage if you want their support enabled:
+
+```bat
+-mod=@CF;@Dabs Framework;@CodeLock;@Breachingcharge;@HM-C4;@APH Havoc Storage
+```
+
+> CodeLock, BreachingCharge, HM-C4, and other supported mods are optional. Only enable their support in the APH config if those mods are loaded on your server.
 
 ---
 
@@ -71,28 +85,43 @@ $profile:aph_mods/aph_storage/interaction_logs.log
 $profile:aph_mods/aph_storage/startup.log
 ```
 
----
-
-## Images
-
-Add your images into a GitHub folder like this:
+Virtual Storage files:
 
 ```txt
-/docs/images/
+mpmissions/storage_1/APH_VirtualStorage/
+```
+
+Player Virtual Storage folders:
+
+```txt
+mpmissions/storage_1/APH_VirtualStorage/Players/STEAMID/
+```
+
+---
+
+## Images For GitHub
+
+Add your guide screenshots into a GitHub folder like this:
+
+```txt
+docs/images/
 ```
 
 Recommended image names:
 
 ```txt
-/docs/images/config-folder.png
-/docs/images/virtual-storage.png
-/docs/images/discord-webhook.png
-/docs/images/raid-alert.png
-/docs/images/storage-notification.png
-/docs/images/weapon-bench.png
+docs/images/config-folder.png
+docs/images/virtual-storage.png
+docs/images/virtual-storage-restore.png
+docs/images/discord-webhook.png
+docs/images/raid-alert.png
+docs/images/storage-notification.png
+docs/images/weapon-bench.png
+docs/images/codelock-storage.png
+docs/images/raiding-tools.png
 ```
 
-Then use them in Markdown like this:
+Use images in Markdown like this:
 
 ```md
 ![Config Folder](docs/images/config-folder.png)
@@ -106,9 +135,9 @@ Example:
 
 ## Main Config Overview
 
-The main config controls storage behaviour, raiding, virtual storage, CodeLock support, notifications, Discord logging, and admin reloads.
+The main config controls storage behaviour, raiding, virtual storage, CodeLock support, notifications, Discord logging, admin reloads, and whitelist rules.
 
-Important sections:
+Important enable/disable settings:
 
 ```json
 {
@@ -142,36 +171,76 @@ to disable a feature.
 
 Virtual Storage improves server performance by storing supported container contents into JSON data instead of keeping all items active in the world.
 
-### Enable Virtual Storage
+Enable Virtual Storage:
 
 ```json
 "EnableVirtualContainerStorage": 1
 ```
 
-### Enable Auto Store
+Enable Virtual Storage logs:
+
+```json
+"EnableVirtualStorageLogs": 1
+```
+
+Enable debug logs only when testing:
+
+```json
+"EnableVirtualStorageDebug": 0
+```
+
+> Recommended: keep debug disabled on live servers unless you are troubleshooting.
+
+---
+
+## Idle-Based Auto Store
+
+APH Storage uses an idle-based auto-store system.
+
+This means storage will **not** auto-store while a player is actively moving items around in the inventory.
+
+Enable auto-store:
 
 ```json
 "EnableAutoStoreAfterOpenTimeout": 1,
 "AutoStoreTimeoutSeconds": 60
 ```
 
-This means the storage will automatically virtual-store after it has been idle.
-
-### Auto Store Behaviour
+Recommended value:
 
 ```json
+"AutoStoreTimeoutSeconds": 60
+```
+
+Increase this if your players need more time while sorting storage:
+
+```json
+"AutoStoreTimeoutSeconds": 120
+```
+
+Auto-store options:
+
+```json
+"EnableAutoStoreNonOpenableContainers": 1,
+"EnableAutoStoreCodeLockContainers": 1,
 "AutoStoreWhileLocked": 1,
-"AutoStoreWhileClosed": 1,
-"EnableAutoStoreCodeLockContainers": 1
+"AutoStoreWhileClosed": 1
 ```
 
-Recommended:
+### How Idle Auto Store Works
 
-```json
-"AutoStoreWhileLocked": 1
-```
+The idle timer resets when players are:
 
-This allows locked containers to store virtually for performance.
+- Moving items
+- Attaching items
+- Detaching items
+- Opening storage
+- Restoring storage
+- Interacting with storage inventory
+
+Storage will only virtual-store after the configured idle timeout has passed.
+
+This prevents APH Storage from virtualizing a container while players are actively organizing loot.
 
 ---
 
@@ -193,21 +262,39 @@ These are the container classes APH Storage will allow virtual storage on:
 ]
 ```
 
-### Notes
+### Supported Storage Types
 
-- `WoodenCrate` supports vanilla wooden crates.
-- `SeaChest` supports vanilla sea chests.
-- `Barrel_ColorBase` supports barrels.
-- `Container_Base` allows broader modded container support.
-- APH base classes support APH custom lockers, shelves, safes, racks, and storage objects.
+- APH custom storage
+- APH lockers
+- APH safes
+- APH shelves
+- APH racks
+- Wooden crates
+- Sea chests
+- Barrels
+- Barrel shelves
+- Small protector cases
+- Tents
+- Modded `Container_Base` storage
+
+### Nested / Attached Container Support
+
+APH Storage supports attached and nested containers, including:
+
+- WoodenCrate attached to APH storage
+- SeaChest attached to APH storage
+- Barrel storage
+- Barrel shelf storage
+- Container_Base derived items
+- Storage inside supported storage where allowed by DayZ inventory rules
 
 ---
 
 ## Virtual Storage Exclusions
 
-Some containers should never be virtual-stored, especially temporary event objects, flares, or public workbenches.
+Some containers should never be virtual-stored, especially temporary event containers, airdrop systems, vehicle airdrops, loot chest systems, public workbenches, or dynamically managed storage from other mods.
 
-Recommended default exclusions:
+Default exclusions:
 
 ```json
 "VirtualStorageExcludedContainers": [
@@ -218,20 +305,46 @@ Recommended default exclusions:
 ]
 ```
 
+### Script Default Equivalent
+
+The default script setup uses:
+
+```c
+VirtualStorageExcludedContainers = new array<string>;
+VirtualStorageExcludedContainers.Insert("LB_LC_Base");
+VirtualStorageExcludedContainers.Insert("LB_Airdrop_Car_Base");
+VirtualStorageExcludedContainers.Insert("LB_Airdrop_Base");
+VirtualStorageExcludedContainers.Insert("zm_WorkbenchPublic");
+```
+
+### What These Exclusions Do
+
+| Class | Purpose |
+|---|---|
+| `LB_LC_Base` | Excludes LB loot chest / related dynamic containers |
+| `LB_Airdrop_Car_Base` | Excludes LB vehicle airdrops |
+| `LB_Airdrop_Base` | Excludes LB airdrop containers |
+| `zm_WorkbenchPublic` | Excludes ZenMod public workbenches |
+
 ### When To Add Exclusions
 
 Add a class here if:
 
-- It is an event object.
-- It should never save loot.
-- It is a public workbench.
-- It is temporary.
-- It is causing unwanted virtual storage behaviour.
+- It is an event object
+- It is temporary
+- It is controlled by another mod
+- It is a public workbench
+- It should never save loot through APH
+- It is causing unwanted virtual storage behaviour
 
 Example:
 
 ```json
 "VirtualStorageExcludedContainers": [
+    "LB_LC_Base",
+    "LB_Airdrop_Car_Base",
+    "LB_Airdrop_Base",
+    "zm_WorkbenchPublic",
     "My_Event_Container",
     "My_Public_Workbench"
 ]
@@ -244,6 +357,7 @@ Example:
 These messages show to players when storage is stored or restored.
 
 ```json
+"VirtualStorageNotifyPlayers": 1,
 "VirtualStorageStoreMessage": "[APH Storage] Contents stored virtually.",
 "VirtualStorageRestoreMessage": "[APH Storage] Virtual contents restored.",
 "VirtualStorageAutoStoreMessage": "[APH Storage] Contents were auto-stored for server performance.",
@@ -292,6 +406,13 @@ Allow auto-store while locked:
 
 Set to `1` if you want CodeLocks to be affected by raiding.
 
+Explosive CodeLock options:
+
+```json
+"BreachingChargeDestroysCodeLock": 1,
+"HMC4DestroysCodeLock": 1
+```
+
 ---
 
 ## Raiding Setup
@@ -330,13 +451,60 @@ Raid damage settings:
 "ToolDamageOnRaid": 25
 ```
 
-### What These Mean
+---
+
+## Raid Tool Timer & Damage
+
+The `RaidTools` array decides which tools are allowed to raid.
+
+The timer and damage are controlled by these global settings:
+
+```json
+"RaidDamagePerAction": 10,
+"RaidActionTimeSeconds": 8,
+"ToolDamageOnRaid": 25
+```
+
+### What These Settings Mean
 
 | Setting | Meaning |
 |---|---|
-| `RaidDamagePerAction` | Damage done each raid action |
+| `RaidTools` | List of tools allowed to perform raid actions |
 | `RaidActionTimeSeconds` | How long each raid action takes |
-| `ToolDamageOnRaid` | Damage applied to the raid tool |
+| `RaidDamagePerAction` | Damage applied to the storage or door after each completed action |
+| `ToolDamageOnRaid` | Damage applied to the raid tool after each completed action |
+
+### Example
+
+If the config is:
+
+```json
+"RaidDamagePerAction": 10,
+"RaidActionTimeSeconds": 8,
+"ToolDamageOnRaid": 25
+```
+
+Then every completed raid action:
+
+- Takes 8 seconds
+- Applies 10 damage to the target
+- Applies 25 damage to the raid tool
+
+If the target has 100 health, it would take 10 completed raid actions to destroy.
+
+### Adding Custom Raid Tools
+
+Add the class name into the list:
+
+```json
+"RaidTools": [
+    "SledgeHammer",
+    "Crowbar",
+    "MyCustomRaidTool"
+]
+```
+
+> The class name must match the item class used by the mod.
 
 ---
 
@@ -362,19 +530,24 @@ Dismantle settings:
 "DeCraftKitToolDamage": 10
 ```
 
-### Example
-
-To make only pliers work:
+### Adding Custom Dismantle Tools
 
 ```json
 "DismantleTools": [
-    "Pliers"
+    "Screwdriver",
+    "Pliers",
+    "Hammer",
+    "Wrench"
 ]
 ```
+
+> The dismantle tool class must match the item class name.
 
 ---
 
 ## BreachingCharge / HM-C4 Support
+
+APH Storage supports explosive raiding for both storage objects and doors.
 
 Enable BreachingCharge support:
 
@@ -401,15 +574,17 @@ Open storage after explosive raid:
 "OpenStorageAfterExplosiveRaid": 1
 ```
 
-### Supported Targets
-
-Explosives can be configured to work on:
+### Supported Explosive Targets
 
 - APH storage objects
-- APH doors
-- Blast doors
-- Bunker doors
-- Armoured doors
+- APH lockers
+- APH safes
+- APH shelves
+- APH blast doors
+- APH bunker doors
+- APH armoured doors
+- APH caged doors
+- APH shutter doors
 - Lockable APH containers
 
 ---
@@ -622,7 +797,7 @@ APH Storage includes whitelist controls for certain storage types.
 
 ---
 
-## Ammo Box Whitelist
+### Ammo Box Whitelist
 
 ```json
 "EnableAmmoBoxWhitelist": 1,
@@ -634,7 +809,7 @@ APH Storage includes whitelist controls for certain storage types.
 
 ---
 
-## Refrigerator Whitelist
+### Refrigerator Whitelist
 
 ```json
 "EnableRefrigeratorWhitelist": 1,
@@ -648,7 +823,7 @@ APH Storage includes whitelist controls for certain storage types.
 
 ---
 
-## Medical Cabinet Whitelist
+### Medical Cabinet Whitelist
 
 ```json
 "EnableMedicalCabinetWhitelist": 1,
@@ -686,7 +861,7 @@ APH Storage includes whitelist controls for certain storage types.
 
 ---
 
-## Container Base Ammunition Whitelist
+### Container Base Ammunition Whitelist
 
 ```json
 "EnableContainerBaseAmmunitionAllow": 1,
@@ -716,6 +891,50 @@ Allowed SteamIDs:
 ```
 
 Only SteamIDs in this list can reload the APH Storage config in-game.
+
+---
+
+## Latest Fixes & Improvements
+
+### Virtual Storage
+
+- Fixed attached WoodenCrate persistence
+- Fixed attached SeaChest persistence
+- Fixed attached barrel storage persistence
+- Fixed barrel shelf storage handling
+- Fixed nested container persistence
+- Fixed `Container_Base` virtual storage handling
+- Added idle-based auto-store system
+- Added automatic activity detection
+- Improved restart recovery
+- Improved duplication protection
+- Improved storage synchronization
+- Improved behaviour when Virtual Storage is disabled in JSON
+
+### Raiding
+
+- Fixed `RaidTools` reading from JSON configuration
+- Fixed `DismantleTools` reading from JSON configuration
+- Added BreachingCharge support for APH storage
+- Added BreachingCharge support for APH doors
+- Added HM-C4 support for APH storage
+- Added HM-C4 support for APH doors
+- Improved raid webhook support
+- Improved raid notifications
+
+### Storage / Models
+
+- Fixed lockers opening incorrectly
+- Fixed locker door alignment issues
+- Updated storage slot configurations
+- Improved APH storage backend validation
+
+### Compatibility
+
+- Added LB loot chest exclusion support
+- Added LB vehicle airdrop exclusion support
+- Added LB airdrop exclusion support
+- Added ZenMod public workbench exclusion support
 
 ---
 
@@ -754,6 +973,14 @@ Below is a clean recommended config baseline.
     "AutoStoreWhileLocked": 1,
     "AutoStoreWhileClosed": 1,
     "RequireItemsForStoreAction": 1,
+    "VirtualStorageNotifyPlayers": 1,
+
+    "VirtualStorageStoreMessage": "[APH Storage] Contents stored virtually.",
+    "VirtualStorageRestoreMessage": "[APH Storage] Virtual contents restored.",
+    "VirtualStorageAutoStoreMessage": "[APH Storage] Contents were auto-stored for server performance.",
+    "VirtualStorageStoreEmptyMessage": "[APH Storage] Nothing to store.",
+    "VirtualStorageRestoreNoFileMessage": "[APH Storage] No virtual contents found for this container.",
+    "VirtualStorageRestoreBlockedMessage": "[APH Storage] Restore blocked because this container still has live items.",
 
     "VirtualStorageEnabledContainers": [
         "APH_Storage_Container_Base",
@@ -768,11 +995,9 @@ Below is a clean recommended config baseline.
     ],
 
     "VirtualStorageExcludedContainers": [
-        "LB_Airdrop_Flare_Medical",
-        "LB_Airdrop_Flare_Military",
-        "LB_Airdrop_Flare_Civilian",
-        "LB_Airdrop_Flare_Basebuilding",
-        "LB_Airdrop_Flare_Special",
+        "LB_LC_Base",
+        "LB_Airdrop_Car_Base",
+        "LB_Airdrop_Base",
         "zm_WorkbenchPublic"
     ],
 
@@ -786,13 +1011,35 @@ Below is a clean recommended config baseline.
         "Hacksaw"
     ],
 
+    "RaidDamagePerAction": 10,
+    "RaidActionTimeSeconds": 8,
+    "ToolDamageOnRaid": 25,
+
     "DismantleTools": [
         "Screwdriver",
         "Pliers",
         "Hammer"
-    ]
+    ],
+
+    "BreachingChargeDestroysCodeLock": 1,
+    "HMC4DestroysCodeLock": 1,
+    "OpenStorageAfterExplosiveRaid": 1,
+
+    "EnableAPHNotificationSystem": 1,
+    "APHStorageNotificationTitle": "APH Storage",
+    "APHRaidNotificationTitle": "APH Raid Alert",
+    "APHStorageNotificationIcon": "APH_Storage/Scripts/Data/Icons/storage_logs.paa",
+    "APHRaidNotificationIcon": "APH_Storage/Scripts/Data/Icons/raiding.paa",
+    "APHNotificationDurationSeconds": 8,
+
+    "EnableRaidInGameMessages": 1,
+    "RaidArmedMessage": "[APH RAID ALERT] A breaching charge has been armed.",
+    "RaidBreachedMessage": "[APH RAID ALERT] Storage has been breached.",
+    "RaidBlockedMessage": "[APH RAID ALERT] Raiding is not allowed right now."
 }
 ```
+
+> Your generated config may contain more values than this baseline. Do not delete extra values unless you know what they are used for.
 
 ---
 
@@ -818,13 +1065,15 @@ Check:
 "EnableVirtualStorageWebhookLogs": 1
 ```
 
-and make sure:
+Make sure:
 
 ```json
 "VirtualStorageDiscordWebhookURL": "YOUR_WEBHOOK"
 ```
 
 is a valid Discord webhook URL.
+
+Also check that your firewall or host does not block outbound webhook requests.
 
 ---
 
@@ -837,13 +1086,33 @@ Check:
 "EnableVanillaToolRaiding": 1
 ```
 
-Also confirm the exact tool class is listed:
+Confirm the exact tool class is listed:
 
 ```json
 "RaidTools": [
     "Crowbar"
 ]
 ```
+
+Also confirm the raid target is an APH-supported storage or door object.
+
+---
+
+### Raid tool timer or damage feels wrong
+
+Adjust:
+
+```json
+"RaidDamagePerAction": 10,
+"RaidActionTimeSeconds": 8,
+"ToolDamageOnRaid": 25
+```
+
+Lower `RaidActionTimeSeconds` for faster raiding.
+
+Increase `RaidDamagePerAction` for stronger raid damage.
+
+Increase `ToolDamageOnRaid` if you want tools to break faster.
 
 ---
 
@@ -870,6 +1139,7 @@ Make sure you are using the latest APH Storage update with:
 - Nested container protection
 - Attached container protection
 - Idle-only auto-store
+- Barrel shelf support
 - Container_Base support
 - Virtual storage exclusion support
 
@@ -901,6 +1171,19 @@ Increase it if your players need more time:
 
 ---
 
+### BreachingCharge or HM-C4 does not work
+
+Check:
+
+```json
+"EnableBreachingChargeSupport": 1,
+"EnableHMC4Support": 1
+```
+
+Also make sure the BreachingCharge / HM-C4 mod is loaded before APH Storage if required by your server setup.
+
+---
+
 ## Support
 
 When reporting bugs, please provide:
@@ -910,7 +1193,8 @@ When reporting bugs, please provide:
 - Config file
 - Video or screenshots
 - Steps to reproduce
-- Mod list
+- Full mod list
+- Exact storage class name if known
 
 Join the APH Discord:
 
@@ -922,6 +1206,8 @@ https://discord.gg/2wHVcNgEn7
 
 ## Copyright
 
-APH Storage assets, scripts, models, textures, and source files may not be repacked, reuploaded, redistributed, or monetized without written permission.
+APH Storage assets, scripts, models, textures, and source files may not be repacked, reuploaded, redistributed, extracted, monetized, or reused without written permission.
 
 Server owners may edit configuration files for personal server use only.
+
+Unauthorized redistribution of APH assets may result in takedown action.
