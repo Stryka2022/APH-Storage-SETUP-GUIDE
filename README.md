@@ -1,137 +1,155 @@
-# APH Havoc Storage Setup Guide
+# APH Havoc Storage
 
-Updated for the current APH Storage config set.
+APH Havoc Storage is a DayZ storage, placement, security, and raid-support mod for server owners. It provides configurable storage objects, lock support, virtual storage performance handling, kit placement, dismantling, raid tools, explosive raid integrations, webhooks, notifications, and admin reload utilities.
 
-APH Havoc Storage is a DayZ storage and security system for server owners. It adds lockable storage, doors, safes, armoury furniture, gun walls, ammo boxes, medical/fridge storage logic, virtual storage performance handling, CodeLock support, raid tools, breaching charge / HM-C4 integration, Discord webhooks, in-game notifications, and admin reload support.
+This README is written for the current APH Storage config set and includes the latest V5 selected Headgear/Gloves storage fix, configurable dismantle tool actions, and raid schedule support.
 
 ---
 
-## What this mod does
+## Features
 
-APH Storage gives servers a configurable storage framework instead of just static containers.
+### Storage and placement
+- APH storage containers, lockers, safes, crates, fridges, medical cabinets, ammo boxes, armoury furniture, doors, racks, and gun walls.
+- Kit placement using DayZ placement actions.
+- Optional kit crafting and dismantling.
+- Auto-close support for openable storage.
+- Optional automatic virtual storing after timeout.
 
-Main features:
+### Gear storage and mannequin/locker support
+- Gear slot storage and swapping.
+- Selected item handling for worn gear and held/selected gear.
+- V5 fix for selected `Headgear` and `Gloves` not storing or swapping correctly.
+- Safer movement using source-to-destination `InventoryLocation` handling for sensitive clothing slots.
 
-- Lockable storage using CodeLock support.
-- APH doors, safes, lockers, weapon racks, gun walls, crates, ammo boxes, fridges, medical cabinets, and armoury furniture.
-- Virtual storage system that can store items outside the live container to reduce server load.
-- Auto close and auto store timers for open storage.
-- Raid tools support using configured vanilla/custom tools.
-- Breaching Charge and HM-C4 support.
-- Per-target raid control so each storage/door class can allow tools, charges, HM-C4, or none.
-- Raid schedule control for server raid days.
-- CodeLock destruction support on successful raid.
-- Option to open storage automatically after explosive raid.
-- Discord webhook logs for storage and raids.
-- In-game APH notifications for storage and raid events.
-- Kit crafting and de-crafting options.
-- Gun bench repair system.
-- Ammo box, fridge, and medical cabinet item whitelists.
+### Lock and raid support
+- CodeLock attachment support.
+- Tool raiding using configurable raid tools.
+- BreachingCharge and HM-C4 support toggles.
+- Optional CodeLock destruction/drop behavior after successful raid.
+- Per-target raid control for storage, safes, doors, BBP targets, and custom objects.
+- Raid day/time schedule support.
+
+### Virtual storage
+- Stores container contents virtually to reduce live entity load.
+- Auto-store options for closed, locked, openable, and non-openable containers.
+- Restore-blocking safeguards to reduce duplication risk.
+- Optional player notifications and webhook logging.
+
+### Admin and logging
+- Raid logs.
+- Interaction logs.
+- Crafting, placement, and dismantle logs.
+- Discord webhook support for storage and raid events.
 - Admin config reload keybind support.
 
 ---
 
-## Config file locations
+## Requirements
 
-After first server start, the APH configs are expected in your server profile/config area.
+Install any dependency mods your server configuration uses. Common examples:
 
-Use these files:
+```txt
+CF
+CodeLock
+Dabs Framework
+BreachingCharge
+HM-C4
+BaseBuildingPlus
+DayZ Expansion
+```
 
-```text
+Not every dependency is mandatory for every server. Enable only the APH features that match your installed mod stack.
+
+---
+
+## Installation
+
+1. Add the mod to your server and client mod list.
+2. Add required dependency mods before APH Havoc Storage in the launch order.
+3. Start the server once to generate APH config files.
+4. Stop the server.
+5. Edit the generated config files in your server profile/config folder.
+6. Restart the server.
+7. Test storage, placement, locking, virtual storage, and raid behavior.
+
+Example launch order:
+
+```txt
+@CF;@Dabs Framework;@Code Lock;@Breachingcharge;@BaseBuildingPlus;@APH Havoc Storage
+```
+
+Adjust the order to match your server pack.
+
+---
+
+## Config files
+
+APH uses these main config files:
+
+```txt
 aph_storage.json
 aph_raid_schedule.json
 aph_storage_raid_target_control.json
 ```
 
-Third-party raiding mods such as BreachingCharge use their own config file. APH classes must be added to that third-party config if the third-party mod requires a destroyable object list.
-
-Example third-party file used in this guide:
-
-```text
-breachingcharge.json
-```
+They are normally generated in your server profile/config area after first server start.
 
 ---
 
-## Quick setup
+## Main config: `aph_storage.json`
 
-1. Install APH Havoc Storage on the server and client.
-2. Install required dependencies used by your server pack, for example CodeLock if you want locked storage.
-3. Start the server once so default JSON files generate.
-4. Stop the server.
-5. Edit `aph_storage.json` for main APH settings.
-6. Edit `aph_raid_schedule.json` if you want raid days/times.
-7. Edit `aph_storage_raid_target_control.json` to choose which storage/door classes are raidable and by what method.
-8. If using BreachingCharge, HM-C4, or another raid mod, add APH classnames into that mod’s own destroyable/raid target config.
-9. Restart the server.
-10. Test with a CodeLocked APH storage item and the raid method you enabled.
+This is the core APH config.
 
----
-
-## Important main settings in `aph_storage.json`
-
-These are the core switches server owners normally change first.
+Important switches:
 
 ```json
 {
     "EnableCodeLockSupport": 1,
     "EnableCodeLockAttachment": 1,
+    "EnableCodeLockRaiding": 0,
+    "DeleteCodeLockOnSuccessfulRaid": 0,
     "EnableRaiding": 1,
     "EnableVanillaToolRaiding": 1,
     "EnableBreachingChargeSupport": 0,
     "EnableHMC4Support": 0,
-    "BreachingChargeDestroysCodeLock": 1,
-    "HMC4DestroysCodeLock": 1,
-    "OpenStorageAfterExplosiveRaid": 1,
-    "DeleteCodeLockOnSuccessfulRaid": 0,
+    "EnableRaidLogs": 1,
+    "EnableInteractionLogs": 1,
     "DisableContainerDamageWhenRaidingDisabled": 1,
     "ProxyMode": 1,
     "AutoCloseOnServerStart": 1,
     "EnableAutoCloseStorageTimer": 1,
     "AutoCloseMinutes": 5,
-    "OpenCloseRange": 2.0,
-    "EnableVirtualContainerStorage": 1,
-    "EnableAutoStoreAfterOpenTimeout": 1,
-    "AutoStoreTimeoutSeconds": 60,
-    "EnableAutoStoreNonOpenableContainers": 1,
-    "EnableAutoStoreCodeLockContainers": 1,
-    "AutoStoreWhileLocked": 1,
-    "AutoStoreWhileClosed": 1,
-    "EnableAPHNotificationSystem": 1,
-    "EnableVirtualStorageWebhookLogs": 0,
-    "EnableRaidDiscordWebhookLogs": 0,
-    "EnableRaidInGameMessages": 1,
-    "EnableStorageConfigReloadKeybind": 1
+    "OpenCloseRange": 2.0
 }
 ```
 
-### Recommended basic raiding setup
-
-To allow APH raid tools and explosive integrations, enable the core raid system first:
+### CodeLock behavior
 
 ```json
 {
-    "EnableRaiding": 1,
-    "EnableVanillaToolRaiding": 1,
-    "EnableBreachingChargeSupport": 1,
-    "EnableHMC4Support": 1,
-    "BreachingChargeDestroysCodeLock": 1,
-    "HMC4DestroysCodeLock": 1,
-    "OpenStorageAfterExplosiveRaid": 1,
+    "EnableCodeLockSupport": 1,
+    "EnableCodeLockAttachment": 1,
+    "EnableCodeLockRaiding": 0,
     "DeleteCodeLockOnSuccessfulRaid": 0
 }
 ```
 
-`DeleteCodeLockOnSuccessfulRaid` should stay `0` if you want the CodeLock to be dropped/preserved instead of deleted.
+Recommended default:
+
+- Keep `EnableCodeLockSupport` enabled if using CodeLock.
+- Keep `DeleteCodeLockOnSuccessfulRaid` set to `0` if you want locks dropped or preserved instead of deleted.
+- Enable `EnableCodeLockRaiding` only if your raid design needs APH to interact directly with CodeLock raid behavior.
 
 ---
 
 ## Raid tools
 
-The configured raid tools are:
+APH separates raid tools from dismantle tools.
+
+Configured raid tools:
 
 ```json
-[
+"RaidTools": [
     "SledgeHammer",
     "Crowbar",
     "FirefighterAxe",
@@ -142,7 +160,7 @@ The configured raid tools are:
 ]
 ```
 
-Tool raid settings:
+Raid damage settings:
 
 ```json
 {
@@ -152,31 +170,167 @@ Tool raid settings:
 }
 ```
 
-Only tools listed in `RaidTools` should trigger APH raid actions. If a custom tool is added by another mod, add its exact classname to this list.
+Only add a tool to `RaidTools` if you want that tool to perform APH raid actions.
 
 ---
 
-## Dismantle tools
+## Dismantle tools and tool animations
 
-Dismantle tools are separate from raid tools.
+Dismantle tools are configured separately:
 
 ```json
-[
+"DismantleTools": [
     "Screwdriver",
     "Pliers",
     "Hammer"
 ]
 ```
 
-Use this list only for normal dismantle/de-craft actions. Do not use it as the raid tool list unless you want those tools to raid too.
+Tool damage:
+
+```json
+"DismantleToolDamages": [
+    {
+        "ClassName": "Screwdriver",
+        "Damage": 10
+    },
+    {
+        "ClassName": "Pliers",
+        "Damage": 8
+    },
+    {
+        "ClassName": "Hammer",
+        "Damage": 15
+    }
+]
+```
+
+Tool action animation mapping:
+
+```json
+"DismantleToolActions": [
+    {
+        "ClassName": "Screwdriver",
+        "Action": "INTERACT"
+    },
+    {
+        "ClassName": "Pliers",
+        "Action": "INTERACT"
+    },
+    {
+        "ClassName": "Hammer",
+        "Action": "DISASSEMBLE"
+    },
+    {
+        "ClassName": "Shovel",
+        "Action": "DIG"
+    },
+    {
+        "ClassName": "FieldShovel",
+        "Action": "DIG"
+    },
+    {
+        "ClassName": "Pickaxe",
+        "Action": "DIG"
+    }
+]
+```
+
+Supported action values:
+
+```txt
+INTERACT
+CRAFTING
+CRAFT
+ASSEMBLE
+DIG
+ANIMALSKINNING
+SKINNING
+DISASSEMBLE
+```
+
+Use this section to stop tools from all using the same hammer/disassemble animation.
 
 ---
 
-## Virtual storage system
+## Kit crafting and dismantling
 
-Virtual storage is used to improve performance by storing container contents virtually when the storage is closed, idle, or timed out depending on your settings.
+```json
+{
+    "CanCraftKits": 1,
+    "CraftKitToolTime": 20,
+    "CraftKitRecipeOne": "Nail",
+    "CraftKitRecipeOneQty": 20,
+    "CraftKitRecipeTwo": "WoodenPlank",
+    "CraftKitRecipeTwoQty": 4,
+    "CanDismantleKits": 1,
+    "DismantleKitText": "Dismantle Kit",
+    "DismantleKitTool": "Screwdriver",
+    "DismantleKitToolTime": 10,
+    "DismantleKitToolDamage": 10
+}
+```
 
-Current virtual storage settings:
+---
+
+## Placement action
+
+APH kits use the standard DayZ placement action flow:
+
+```c
+AddAction(ActionTogglePlaceObject);
+AddAction(ActionPlaceObject);
+```
+
+This gives players the normal placement/wheel placement behavior when placing APH kit objects.
+
+---
+
+## Selected Headgear and Gloves fix
+
+This update includes a V5 fix for selected `Headgear` and `Gloves` not storing or swapping when the item is selected or held.
+
+The issue was caused by sensitive clothing slots silently failing through standard attachment wrapper movement in some cases. The fix uses direct source-to-destination inventory movement:
+
+```c
+InventoryLocation src = new InventoryLocation;
+item.GetInventory().GetCurrentInventoryLocation(src);
+
+InventoryLocation dst = new InventoryLocation;
+dst.SetAttachment(target, item, slotId);
+
+player.ServerTakeToDst(src, dst);
+```
+
+Test cases after installing:
+
+```txt
+Selected helmet -> empty Headgear slot
+Selected helmet -> occupied Headgear slot
+Selected gloves -> empty Gloves slot
+Selected gloves -> occupied Gloves slot
+```
+
+Also test normal gear slots to confirm nothing regressed:
+
+```txt
+Vest
+Body
+Legs
+Feet
+Back
+Mask
+Eyewear
+Armband
+```
+
+---
+
+## Virtual storage
+
+Virtual storage can reduce server load by storing contents outside the live container when conditions are met.
+
+Core settings:
 
 ```json
 {
@@ -201,10 +355,10 @@ Current virtual storage settings:
 }
 ```
 
-### Virtual storage enabled containers
+Enabled containers:
 
 ```json
-[
+"VirtualStorageEnabledContainers": [
     "APH_Storage_Container_Base",
     "APH_Storage_Openable_Base",
     "APH_Storage_Placeable_Base",
@@ -217,12 +371,10 @@ Current virtual storage settings:
 ]
 ```
 
-### Virtual storage excluded containers
-
-These are ignored by APH virtual storage:
+Excluded containers:
 
 ```json
-[
+"VirtualStorageExcludedContainers": [
     "LB_LC_Base",
     "LB_Airdrop_Car_Base",
     "LB_Airdrop_Base",
@@ -230,13 +382,11 @@ These are ignored by APH virtual storage:
 ]
 ```
 
-Add third-party containers here if APH should not virtual-store them.
+Add third-party containers to the excluded list if APH should not virtual-store them.
 
 ---
 
-## Whitelist storage logic
-
-### Ammo boxes
+## Ammo box whitelist
 
 ```json
 {
@@ -253,7 +403,9 @@ Add third-party containers here if APH should not virtual-store them.
 }
 ```
 
-### Fridges
+---
+
+## Refrigerator whitelist
 
 ```json
 {
@@ -267,7 +419,9 @@ Add third-party containers here if APH should not virtual-store them.
 }
 ```
 
-### Medical cabinets
+---
+
+## Medical cabinet whitelist
 
 ```json
 {
@@ -307,7 +461,7 @@ Add third-party containers here if APH should not virtual-store them.
 
 ---
 
-## Gun bench repair system
+## Gun bench repair
 
 ```json
 {
@@ -345,46 +499,219 @@ Add third-party containers here if APH should not virtual-store them.
 }
 ```
 
-This allows selected APH gun bench classes to repair weapons using the configured required parts.
-
 ---
 
-## Crafting and de-crafting kits
+## Raid schedule: `aph_raid_schedule.json`
+
+If raid scheduling is disabled, raiding is allowed every day/all day:
 
 ```json
 {
-    "CanCraftKits": 1,
-    "CraftKitToolTime": 20,
-    "CraftKitRecipeOne": "Nail",
-    "CraftKitRecipeOneQty": 20,
-    "CraftKitRecipeTwo": "WoodenPlank",
-    "CraftKitRecipeTwoQty": 4,
-    "CanDeCraftKits": 1,
-    "DeCraftKitText": "De-Craft Kit",
-    "DeCraftKitTool": "Screwdriver",
-    "DeCraftKitToolTime": 10,
-    "DeCraftKitToolDamage": 10
+    "EnableRaidSchedule": 0
+}
+```
+
+When enabled, configure each day:
+
+```json
+{
+    "EnableRaidSchedule": 1,
+    "RaidDays": [
+        {
+            "DayName": "Friday",
+            "Enabled": 1,
+            "StartHour": 18,
+            "StartMinute": 0,
+            "FinishHour": 23,
+            "FinishMinute": 59
+        },
+        {
+            "DayName": "Saturday",
+            "Enabled": 1,
+            "StartHour": 12,
+            "StartMinute": 0,
+            "FinishHour": 23,
+            "FinishMinute": 59
+        },
+        {
+            "DayName": "Sunday",
+            "Enabled": 1,
+            "StartHour": 12,
+            "StartMinute": 0,
+            "FinishHour": 22,
+            "FinishMinute": 0
+        }
+    ]
+}
+```
+
+Overnight windows are supported, for example Monday 20:00 to Tuesday 02:00.
+
+Notification settings:
+
+```json
+{
+    "EnableRaidScheduleNotifications": 1,
+    "RaidScheduleStartedMessage": "Raiding time has started. Base raiding is now enabled.",
+    "RaidScheduleEndedMessage": "Raiding time has ended. Base raiding is now disabled."
 }
 ```
 
 ---
 
-## Discord webhooks and in-game notifications
+## Per-target raid control: `aph_storage_raid_target_control.json`
 
-### APH notification system
+This config decides which APH objects can be raided and by which method.
+
+Global defaults:
 
 ```json
 {
-    "EnableAPHNotificationSystem": 1,
-    "APHStorageNotificationTitle": "APH Storage",
-    "APHRaidNotificationTitle": "APH Raid Alert",
-    "APHStorageNotificationIcon": "APH_Storage/Scripts/Data/Icons/storage_logs.paa",
-    "APHRaidNotificationIcon": "APH_Storage/Scripts/Data/Icons/raiding.paa",
-    "APHNotificationDurationSeconds": 8
+    "EnableRaidTargetControl": 1,
+    "DefaultAllowRaidTools": 0,
+    "DefaultAllowBreachingCharge": 0,
+    "DefaultAllowHMC4": 0
 }
 ```
 
-### Virtual storage webhooks
+Example target entry:
+
+```json
+{
+    "ClassName": "APH_Storage_Container_Base",
+    "AllowRaidTools": 1,
+    "AllowBreachingCharge": 1,
+    "AllowHMC4": 1,
+    "AllowedRaidTools": [
+        "SledgeHammer",
+        "Crowbar",
+        "FirefighterAxe",
+        "FirefighterAxe_Black",
+        "FirefighterAxe_Green",
+        "Hatchet",
+        "Hacksaw"
+    ],
+    "AllowedBreachingCharges": [
+        "HDSN_BreachingCharge",
+        "HDSN_BreachingChargeHeavy",
+        "BreachingCharge",
+        "BreachingChargeHeavy"
+    ],
+    "AllowedHMC4Charges": [
+        "HM_C4",
+        "HM_C4_Kit",
+        "HMC4"
+    ]
+}
+```
+
+Rules:
+
+- `ClassName` can be a base class or an exact class.
+- `AllowRaidTools` controls APH tool raiding.
+- `AllowBreachingCharge` controls BreachingCharge compatibility.
+- `AllowHMC4` controls HM-C4 compatibility.
+- Empty allowed lists mean any globally enabled item for that method can be used.
+- Filled allowed lists restrict that method to exact classnames.
+
+Recommended defaults:
+- Storage, lockers, safes: tools and charges enabled.
+- Doors: charges enabled, tools disabled.
+- BBP/base objects: configure according to your server rules.
+
+---
+
+## BreachingCharge integration
+
+Enable support in `aph_storage.json`:
+
+```json
+{
+    "EnableRaiding": 1,
+    "EnableBreachingChargeSupport": 1,
+    "BreachingChargeDestroysCodeLock": 1,
+    "OpenStorageAfterExplosiveRaid": 1,
+    "DeleteCodeLockOnSuccessfulRaid": 0
+}
+```
+
+Allow target classes in `aph_storage_raid_target_control.json`:
+
+```json
+{
+    "ClassName": "APH_Storage_Openable_Base",
+    "AllowRaidTools": 1,
+    "AllowBreachingCharge": 1,
+    "AllowHMC4": 1,
+    "AllowedBreachingCharges": [
+        "HDSN_BreachingCharge",
+        "HDSN_BreachingChargeHeavy",
+        "BreachingCharge",
+        "BreachingChargeHeavy"
+    ]
+}
+```
+
+Also add APH classnames to the third-party BreachingCharge config if that mod requires a destroyable object list.
+
+Example:
+
+```json
+"DestroyableObjects": {
+    "APH_Storage_Openable_Base": "Tier3",
+    "APH_Storage_Container_Base": "Tier3",
+    "APH_Storage_FloorSafe": "Tier2",
+    "APH_Storage_WallSafe": "Tier2",
+    "APH_Storage_Blast_Door_Black": "Tier4",
+    "APH_Storage_Bunker_Door": "Tier4"
+}
+```
+
+Recommended BreachingCharge behavior for lock-focused raids:
+
+```json
+{
+    "OnlyDestroyLocks": 1,
+    "DeleteObjectsDirectly": 0,
+    "DestroyLocksFirst": 0,
+    "PlacementDistance": 2.0
+}
+```
+
+---
+
+## HM-C4 integration
+
+Enable support:
+
+```json
+{
+    "EnableRaiding": 1,
+    "EnableHMC4Support": 1,
+    "HMC4DestroysCodeLock": 1,
+    "OpenStorageAfterExplosiveRaid": 1
+}
+```
+
+Allow charges on targets:
+
+```json
+{
+    "ClassName": "APH_Storage_Container_Base",
+    "AllowHMC4": 1,
+    "AllowedHMC4Charges": [
+        "HM_C4",
+        "HM_C4_Kit",
+        "HMC4"
+    ]
+}
+```
+
+---
+
+## Discord webhooks
+
+### Virtual storage webhook
 
 ```json
 {
@@ -406,9 +733,7 @@ This allows selected APH gun bench classes to repair weapons using the configure
 }
 ```
 
-Set `EnableVirtualStorageWebhookLogs` to `1` and replace `VirtualStorageDiscordWebhookURL` with your Discord webhook URL.
-
-### Raid webhooks
+### Raid webhook
 
 ```json
 {
@@ -426,15 +751,30 @@ Set `EnableVirtualStorageWebhookLogs` to `1` and replace `VirtualStorageDiscordW
     "RaidWebhookIncludePosition": 1,
     "RaidWebhookIncludeContainer": 1,
     "RaidWebhookIncludeCharge": 1,
-    "RaidWebhookIncludeOperationID": 1,
+    "RaidWebhookIncludeOperationID": 1
+}
+```
+
+Replace webhook placeholders before enabling webhook logs.
+
+---
+
+## In-game notifications
+
+```json
+{
+    "EnableAPHNotificationSystem": 1,
+    "APHStorageNotificationTitle": "APH Storage",
+    "APHRaidNotificationTitle": "APH Raid Alert",
+    "APHStorageNotificationIcon": "APH_Storage/Scripts/Data/Icons/storage_logs.paa",
+    "APHRaidNotificationIcon": "APH_Storage/Scripts/Data/Icons/raiding.paa",
+    "APHNotificationDurationSeconds": 8,
     "EnableRaidInGameMessages": 1,
     "RaidArmedMessage": "[APH RAID ALERT] A breaching charge has been armed.",
     "RaidBreachedMessage": "[APH RAID ALERT] Storage has been breached.",
     "RaidBlockedMessage": "[APH RAID ALERT] Raiding is not allowed right now."
 }
 ```
-
-Set `EnableRaidDiscordWebhookLogs` to `1` and replace `RaidDiscordWebhookURL` with your Discord raid webhook URL.
 
 ---
 
@@ -449,108 +789,15 @@ Set `EnableRaidDiscordWebhookLogs` to `1` and replace `RaidDiscordWebhookURL` wi
 }
 ```
 
-Add your Steam64 ID to `StorageConfigReloadAdminSteamIDs`.
+Replace the placeholder with your Steam64 ID.
 
 ---
 
-## Raid schedule setup: `aph_raid_schedule.json`
+## Common APH raid classnames
 
-Current file:
+Use these in APH target control or third-party raid configs where needed:
 
-```json
-{
-    "EnableRaidSchedule": 0,
-    "AllowMonday": 1,
-    "AllowTuesday": 1,
-    "AllowWednesday": 1,
-    "AllowThursday": 1,
-    "AllowFriday": 1,
-    "AllowSaturday": 1,
-    "AllowSunday": 1,
-    "TimeModeNote": "EnableRaidSchedule false means raiding is allowed every day. Turn it on and set allowed days for raid weekends/custom raid days."
-}
-```
-
-### How it works
-
-- `EnableRaidSchedule: 0` means raiding is allowed every day.
-- `EnableRaidSchedule: 1` means APH checks the allowed day flags.
-- Set each day to `1` to allow raiding on that day.
-- Set each day to `0` to block raiding on that day.
-
-Example raid weekend setup:
-
-```json
-{
-    "EnableRaidSchedule": 1,
-    "AllowMonday": 0,
-    "AllowTuesday": 0,
-    "AllowWednesday": 0,
-    "AllowThursday": 0,
-    "AllowFriday": 1,
-    "AllowSaturday": 1,
-    "AllowSunday": 1,
-    "TimeModeNote": "Friday, Saturday and Sunday raid days enabled."
-}
-```
-
----
-
-## Per-target raid control: `aph_storage_raid_target_control.json`
-
-This file decides what can raid each APH class.
-
-Current global settings:
-
-```json
-{
-    "EnableRaidTargetControl": 1,
-    "DefaultAllowRaidTools": 0,
-    "DefaultAllowBreachingCharge": 0,
-    "DefaultAllowHMC4": 0,
-    "Note": "Per-target raid control. ClassName supports inheritance via IsKindOf. Leave AllowedRaidTools/AllowedBreachingCharges/AllowedHMC4Charges empty to allow any globally enabled tool/charge for that raid method. Doors default to charges only; lockers, safes, and storage default to tools and charges."
-}
-```
-
-### How target control works
-
-Each entry uses:
-
-```json
-{
-    "ClassName": "APH_Storage_Container_Base",
-    "AllowRaidTools": 1,
-    "AllowBreachingCharge": 1,
-    "AllowHMC4": 1,
-    "AllowedRaidTools": [],
-    "AllowedBreachingCharges": [],
-    "AllowedHMC4Charges": []
-}
-```
-
-Rules:
-
-- `ClassName` can be a base class or exact class.
-- APH uses inheritance-style matching where supported, so base classes such as `APH_Storage_Container_Base` can cover child storage classes.
-- `AllowRaidTools: 1` allows configured raid tools.
-- `AllowBreachingCharge: 1` allows configured breaching charges.
-- `AllowHMC4: 1` allows configured HM-C4 charges.
-- Empty allowed lists mean any globally enabled item for that method can be used.
-- Filled allowed lists mean only those exact tool/charge classes can be used.
-
-### Default behaviour in the supplied target config
-
-- General APH storage base classes allow raid tools, BreachingCharge and HM-C4.
-- Safes allow raid tools, BreachingCharge and HM-C4.
-- APH doors are set to charges only by default: raid tools disabled, BreachingCharge/HM-C4 enabled.
-
----
-
-## APH classes for raid mods
-
-Use these classes when another raiding mod needs APH objects added to its own config.
-
-```text
+```txt
 APH_Storage_Container_Base
 APH_Storage_Openable_Base
 APH_Storage_Placeable_Base
@@ -667,466 +914,148 @@ APH_Storage_Weapon_Crate2
 
 ---
 
-## Third-party BreachingCharge setup
-
-The uploaded BreachingCharge example uses this structure:
-
-```json
-{
-    "CreateLogs": 1,
-    "Charges": [ ... ],
-    "Tiers": [ ... ],
-    "DestroyableObjects": {
-        "ClassNameHere": "Tier1"
-    }
-}
-```
-
-### Charge setup notes
-
-Your example charge entries include:
-
-```json
-[
-    {
-        "Classname": "HDSN_BreachingCharge",
-        "DamageToObjects": 0,
-        "DamageToDestroyableObjectsRadius": 0.0,
-        "VerticalDistanceModeObjects": 0,
-        "MaxVerticalDistanceObjects": 0.0,
-        "MaxDamageToPlayers": 100.0,
-        "MinDamageToPlayers": 50.0,
-        "DamageToPlayersRadius": 5.0,
-        "MaxDamageToPlayersRadius": 2.0,
-        "MaxVerticalDistancePlayers": 0.0,
-        "OnlyDestroyLocks": 1,
-        "DeleteObjectsDirectly": 0,
-        "DestroyLocksFirst": 0,
-        "PlacementDistance": 2.0,
-        "ToolDamageOnDefuse": 10.0,
-        "DestroyOtherCharges": 0,
-        "TimeToPlant": 30.0,
-        "TimeToExplode": 180.0,
-        "TimeToDefuse": 20.0,
-        "LightBrightness": 0.5,
-        "LightRadius": 10.0,
-        "LightColorStart": [
-            0.0,
-            1.0,
-            0.0
-        ],
-        "LightColorHalfway": [
-            1.0,
-            1.0,
-            0.0
-        ],
-        "LightColorEnd": [
-            1.0,
-            0.0,
-            0.0
-        ],
-        "BeepingSoundSet": "HDSN_SoundSet_Beeping",
-        "BeepingSoundEndTime": 2.0,
-        "SwitchInterval": 2.0,
-        "ExplosionSoundSet": "Landmine_Explosion_SoundSet",
-        "DefuseTools": [
-            "Unarmed"
-        ]
-    },
-    {
-        "Classname": "HDSN_BreachingChargeHeavy",
-        "DamageToObjects": 2,
-        "DamageToDestroyableObjectsRadius": 0.0,
-        "MaxDamageToPlayers": 100.0,
-        "MinDamageToPlayers": 50.0,
-        "DamageToPlayersRadius": 5.0,
-        "MaxDamageToPlayersRadius": 2.0,
-        "OnlyDestroyLocks": 1,
-        "DeleteObjectsDirectly": 0,
-        "DestroyLocksFirst": 0,
-        "PlacementDistance": 2.0,
-        "ToolDamageOnDefuse": 10.0,
-        "TimeToPlant": 30.0,
-        "TimeToExplode": 180.0,
-        "TimeToDefuse": 20.0,
-        "LightBrightness": 0.5,
-        "LightRadius": 10.0,
-        "LightColorStart": [
-            0.0,
-            1.0,
-            0.0
-        ],
-        "LightColorHalfway": [
-            1.0,
-            1.0,
-            0.0
-        ],
-        "LightColorEnd": [
-            1.0,
-            0.0,
-            0.0
-        ],
-        "BeepingSoundSet": "HDSN_SoundSet_Beeping",
-        "BeepingSoundEndTime": 2.0,
-        "SwitchInterval": 2.0,
-        "ExplosionSoundSet": "Landmine_Explosion_SoundSet",
-        "DefuseTools": [
-            "Unarmed"
-        ]
-    }
-]
-```
-
-Recommended APH behaviour for charge-only lock raiding:
-
-```json
-{
-    "OnlyDestroyLocks": 1,
-    "DeleteObjectsDirectly": 0,
-    "DestroyLocksFirst": 0,
-    "PlacementDistance": 2.0
-}
-```
-
-This keeps the raid focused on locks instead of deleting the whole APH storage object.
-
-### Tiers
-
-Your example uses these tiers:
-
-```json
-[
-    {
-        "Name": "Tier1",
-        "Health": 2,
-        "AcceptedChargeTypes": [
-            "HDSN_BreachingCharge",
-            "HDSN_BreachingChargeHeavy"
-        ]
-    },
-    {
-        "Name": "Tier2",
-        "Health": 2,
-        "AcceptedChargeTypes": [
-            "HDSN_BreachingCharge",
-            "HDSN_BreachingChargeHeavy"
-        ]
-    },
-    {
-        "Name": "Tier3",
-        "Health": 4,
-        "AcceptedChargeTypes": [
-            "HDSN_BreachingChargeHeavy"
-        ]
-    },
-    {
-        "Name": "Tier4",
-        "Health": 6,
-        "AcceptedChargeTypes": [
-            "HDSN_BreachingChargeHeavy"
-        ]
-    },
-    {
-        "Name": "Tier5",
-        "Health": 8,
-        "AcceptedChargeTypes": [
-            "HDSN_BreachingChargeHeavy"
-        ]
-    },
-    {
-        "Name": "Tier6",
-        "Health": 10,
-        "AcceptedChargeTypes": [
-            "HDSN_BreachingChargeHeavy"
-        ]
-    },
-    {
-        "Name": "Tier7",
-        "Health": 12,
-        "AcceptedChargeTypes": [
-            "HDSN_BreachingChargeHeavy"
-        ]
-    }
-]
-```
-
-### APH entries inside `DestroyableObjects`
-
-Your example already includes APH classes like this:
-
-```json
-{
-    "APH_Storage_Openable_Base": "Tier3",
-    "ArmouredDoor_ColorBase": "Tier3",
-    "Metal_Door_ColorBase": "Tier3",
-    "Shutter_Door_ColorBase": "Tier3",
-    "Large_Shutter_Door_ColorBase": "Tier2",
-    "APH_Storage_Blast_Door_Black": "Tier4",
-    "APH_Storage_Bunker_Door": "Tier4",
-    "APH_Storage_Caged_Door_Black": "Tier3",
-    "APH_Storage_Caged_Door_Green": "Tier3",
-    "APH_Storage_Metal_Door_Black": "Tier3",
-    "APH_Storage_Shutter_Door_Black": "Tier3",
-    "APH_Storage_Large_Shutter_Door_Black": "Tier3",
-    "APH_Storage_FloorSafe": "Tier2",
-    "APH_Storage_FloorSafe_Black": "Tier2",
-    "APH_Storage_WallSafe": "Tier2",
-    "APH_Storage_WallSafe_Black": "Tier2",
-    "APH_Storage_LongWallSafe": "Tier2",
-    "APH_Storage_LongWallSafe_Black": "Tier2",
-    "APH_Storage_ZFA_Safe": "Tier4",
-    "APH_Storage_50_Cal_AmmoBox": "Tier2",
-    "APH_Storage_AmmoBox": "Tier2",
-    "APH_Storage_AmmoBox_H": "Tier2",
-    "APH_Storage_ArmoryRack": "Tier2",
-    "APH_Storage_ArmouryCabinet": "Tier2",
-    "APH_Storage_ArmouryTable": "Tier2",
-    "APH_Storage_Armoury_Gear_Cabinet": "Tier2",
-    "APH_Storage_Armoury_Locker": "Tier2",
-    "APH_Storage_Armoury_Locker_GB_Black": "Tier2",
-    "APH_Storage_Armoury_Modular_Big_GunWall": "Tier2",
-    "APH_Storage_Armoury_Modular_GunWall": "Tier2",
-    "APH_Storage_Armoury_Modular_Small_GunWall": "Tier2",
-    "APH_Storage_Armoury_Modular_Small_Melee_Display": "Tier2",
-    "APH_Storage_Armoury_Rack": "Tier2",
-    "APH_Storage_Armoury_Rifle_Cabinet": "Tier2",
-    "APH_Storage_Armoury_Table": "Tier2",
-    "APH_Storage_Armoury_Table_With_GunStnad": "Tier2",
-    "APH_Storage_Armoury_Table_With_GunStnads": "Tier2",
-    "APH_Storage_Blast_Door": "Tier4",
-    "APH_Storage_Bunker_Door_ColorBase": "Tier4",
-    "APH_Storage_Celingfan": "Tier2",
-    "APH_Storage_Crate_ATKT1": "Tier2",
-    "APH_Storage_Crate_ATKT2": "Tier2",
-    "APH_Storage_Crate_ATKT3": "Tier2",
-    "APH_Storage_Crate_Anarchy": "Tier2",
-    "APH_Storage_Crate_Avengers": "Tier2",
-    "APH_Storage_Crate_Black2": "Tier2",
-    "APH_Storage_Crate_Broly": "Tier2",
-    "APH_Storage_Crate_Buu1": "Tier2",
-    "APH_Storage_Crate_Buu2": "Tier2",
-    "APH_Storage_Crate_Buu3": "Tier2",
-    "APH_Storage_Crate_Charzard1": "Tier2",
-    "APH_Storage_Crate_Charzard2": "Tier2",
-    "APH_Storage_Crate_Charzard3": "Tier2",
-    "APH_Storage_Crate_Charzard4": "Tier2",
-    "APH_Storage_Crate_Galaxy": "Tier2",
-    "APH_Storage_Crate_Gengar1": "Tier2",
-    "APH_Storage_Crate_Gengar2": "Tier2",
-    "APH_Storage_Crate_Gengar3": "Tier2",
-    "APH_Storage_Crate_Gengar4": "Tier2",
-    "APH_Storage_Crate_Goku1": "Tier2",
-    "APH_Storage_Crate_Goku2": "Tier2",
-    "APH_Storage_Crate_Goku3": "Tier2",
-    "APH_Storage_Crate_Goku4": "Tier2",
-    "APH_Storage_Crate_Green": "Tier2",
-    "APH_Storage_Crate_Itachi1": "Tier2",
-    "APH_Storage_Crate_MK": "Tier2",
-    "APH_Storage_Crate_Mavel": "Tier2",
-    "APH_Storage_Crate_Money1": "Tier2",
-    "APH_Storage_Crate_Pokemon1st": "Tier2",
-    "APH_Storage_Crate_Purple1": "Tier2",
-    "APH_Storage_Crate_SmashBros": "Tier2",
-    "APH_Storage_Crate_SnakeEyes": "Tier2",
-    "APH_Storage_Crate_StormShadow": "Tier2",
-    "APH_Storage_Crate_Teal": "Tier2",
-    "APH_Storage_Crate_Vegeta": "Tier2",
-    "APH_Storage_Data_Crates_APH_Scifi_Crate": "Tier2",
-    "APH_Storage_Data_Crates_APH_Scifi_Crate_Modular_4_Tier_Rack": "Tier2",
-    "APH_Storage_FreshCrate": "Tier2",
-    "APH_Storage_Fridges": "Tier2",
-    "APH_Storage_GrenadeBox": "Tier2",
-    "APH_Storage_Gun_Cabinet": "Tier2",
-    "APH_Storage_Gun_ShowCase": "Tier2",
-    "APH_Storage_Industrial_WaterTank": "Tier2",
-    "APH_Storage_Large_Shutter_Door": "Tier2",
-    "APH_Storage_MLocker": "Tier2",
-    "APH_Storage_MLocker_Bio": "Tier2",
-    "APH_Storage_MLocker_Boom": "Tier2",
-    "APH_Storage_MLocker_Carbon": "Tier2",
-    "APH_Storage_MLocker_Graffiti_1": "Tier2",
-    "APH_Storage_MLocker_Green": "Tier2",
-    "APH_Storage_MLocker_Tempt_Fate": "Tier2",
-    "APH_Storage_MedicalCabinet": "Tier2",
-    "APH_Storage_Metal_Door": "Tier2",
-    "APH_Storage_Modular_BigGunWall": "Tier2",
-    "APH_Storage_Modular_GunWall": "Tier2",
-    "APH_Storage_Modular_SmallGunWall": "Tier2",
-    "APH_Storage_Money_Crate": "Tier2",
-    "APH_Storage_Old_Double_Bed": "Tier2",
-    "APH_Storage_Old_Sofa": "Tier2",
-    "APH_Storage_Retro_Fridge_White": "Tier2",
-    "APH_Storage_Rife_Case_2_Black": "Tier2",
-    "APH_Storage_Scifi_4_Tier_Rack": "Tier2",
-    "APH_Storage_Scifi_Crate_Black": "Tier2",
-    "APH_Storage_ShowCase_Gun_Cabinet": "Tier2",
-    "APH_Storage_Shutter_Door": "Tier2",
-    "APH_Storage_SingleRow_GR": "Tier2",
-    "APH_Storage_WeaponCrate_Green": "Tier2",
-    "APH_Storage_WeaponCrate_Green_WithDirt": "Tier2",
-    "APH_Storage_Weapon_Crate": "Tier2",
-    "APH_Storage_Weapon_Crate2": "Tier2"
-}
-```
-
-### Minimal BreachingCharge APH example
-
-Copy this style into `DestroyableObjects` if your BreachingCharge config is missing APH storage:
-
-```json
-{
-    "APH_Storage_Openable_Base": "Tier3",
-    "APH_Storage_Container_Base": "Tier3",
-    "ArmouredDoor_ColorBase": "Tier3",
-    "Metal_Door_ColorBase": "Tier3",
-    "Shutter_Door_ColorBase": "Tier3",
-    "Large_Shutter_Door_ColorBase": "Tier2",
-    "APH_Storage_Blast_Door_Black": "Tier4",
-    "APH_Storage_Bunker_Door": "Tier4",
-    "APH_Storage_Caged_Door_Black": "Tier3",
-    "APH_Storage_Caged_Door_Green": "Tier3",
-    "APH_Storage_Metal_Door_Black": "Tier3",
-    "APH_Storage_Shutter_Door_Black": "Tier3",
-    "APH_Storage_Large_Shutter_Door_Black": "Tier3",
-    "APH_Storage_FloorSafe": "Tier2",
-    "APH_Storage_FloorSafe_Black": "Tier2",
-    "APH_Storage_WallSafe": "Tier2",
-    "APH_Storage_WallSafe_Black": "Tier2",
-    "APH_Storage_LongWallSafe": "Tier2",
-    "APH_Storage_LongWallSafe_Black": "Tier2",
-    "APH_Storage_ZFA_Safe": "Tier4"
-}
-```
-
-### Important for other raid mods
-
-For any other raiding mod, the same rule applies:
-
-1. Enable the raid method in `aph_storage.json`.
-2. Allow the target class in `aph_storage_raid_target_control.json`.
-3. Add APH classnames to the third-party raid mod config if that mod needs its own object list.
-4. Use APH base classes where the third-party mod supports inherited/base class matching.
-5. If the third-party mod only supports exact classnames, add every APH child class you want raidable.
-
----
-
-## Recommended APH + BreachingCharge setup
-
-In `aph_storage.json`:
-
-```json
-{
-    "EnableRaiding": 1,
-    "EnableBreachingChargeSupport": 1,
-    "BreachingChargeDestroysCodeLock": 1,
-    "OpenStorageAfterExplosiveRaid": 1,
-    "DeleteCodeLockOnSuccessfulRaid": 0,
-    "EnableRaidDiscordWebhookLogs": 1,
-    "EnableRaidInGameMessages": 1
-}
-```
-
-In `aph_storage_raid_target_control.json`, make sure the target allows the charge:
-
-```json
-{
-    "ClassName": "APH_Storage_Container_Base",
-    "AllowRaidTools": 1,
-    "AllowBreachingCharge": 1,
-    "AllowHMC4": 1,
-    "AllowedBreachingCharges": [
-        "HDSN_BreachingCharge",
-        "HDSN_BreachingChargeHeavy",
-        "BreachingCharge",
-        "BreachingChargeHeavy"
-    ]
-}
-```
-
-In `breachingcharge.json`, add the APH target under `DestroyableObjects`:
-
-```json
-{
-    "APH_Storage_Openable_Base": "Tier3",
-    "APH_Storage_FloorSafe": "Tier2",
-    "APH_Storage_Blast_Door_Black": "Tier4"
-}
-```
-
----
-
 ## Testing checklist
 
-Use this checklist after changing raid configs:
+After installing or updating:
 
-- Server starts without JSON errors.
-- `aph_storage.json` has the raid method enabled.
-- `aph_storage_raid_target_control.json` allows the storage class and method.
-- Third-party raid mod config contains APH classes.
-- Target storage has a CodeLock attached if your raid rule requires CodeLock raiding.
-- Breaching charge places but does not instantly open the door/storage.
-- On successful raid, CodeLock is removed/dropped according to APH settings.
-- Door/storage opens after explosive raid if `OpenStorageAfterExplosiveRaid` is enabled.
-- Raid armed and breached messages appear in Discord/in-game if enabled.
-- Non-raidable classes do not show raid actions.
+```txt
+Server starts without script compile errors.
+JSON configs load without parse errors.
+APH storage places correctly from kits.
+Placement wheel action appears.
+Storage opens and closes.
+CodeLock attaches if enabled.
+Storage auto-closes if enabled.
+Virtual storage stores and restores contents.
+Virtual storage does not restore into a container with live items.
+Selected helmet stores into empty Headgear slot.
+Selected helmet swaps with occupied Headgear slot.
+Selected gloves store into empty Gloves slot.
+Selected gloves swap with occupied Gloves slot.
+Other clothing slots still store/swap correctly.
+Dismantle tools show the configured action style.
+Raid tools only show on allowed targets.
+BreachingCharge/HM-C4 only work on allowed targets.
+Raid schedule blocks/allows raiding at the correct time.
+Discord webhook sends only when enabled and URL is valid.
+```
 
 ---
 
 ## Troubleshooting
 
+### Server will not compile
+
+Check the latest crash log for the exact file and line.
+
+Common causes:
+- Wrong script file version copied.
+- Old patched file mixed with newer config class.
+- Missing dependency mod.
+- Function called on the wrong DayZ class.
+- Packed PBO not rebuilt after replacing scripts.
+
+### Headgear or Gloves still will not store
+
+Check:
+- Both client and server are running the updated PBO.
+- The tested storage object has valid `Headgear` and `Gloves` attachment slots.
+- The item itself has valid `inventorySlot` config.
+- No other mod is overriding inventory movement for the same object.
+- Test empty slot first, then occupied slot.
+- Remove old cached/generated files only if your server workflow requires it.
+
+### Dismantle tool uses the wrong animation
+
+Check:
+- Tool classname exists in `DismantleTools`.
+- Tool classname has an entry in `DismantleToolActions`.
+- The action string is one of the supported values.
+- Your existing `aph_storage.json` was updated; old generated configs will not always auto-add new sections unless regenerated or manually edited.
+
 ### Breaching charge will not place
 
 Check:
+- `EnableBreachingChargeSupport` is `1`.
+- The target allows BreachingCharge in `aph_storage_raid_target_control.json`.
+- The charge classname is allowed or the allowed list is empty.
+- The APH classname is added to the third-party BreachingCharge config if required.
+- The object has a CodeLock if your raid rules require lock-only raids.
 
-- `EnableBreachingChargeSupport` is `1` in `aph_storage.json`.
-- `AllowBreachingCharge` is `1` for that target in `aph_storage_raid_target_control.json`.
-- The charge classname is listed in `AllowedBreachingCharges` or the list is empty.
-- The APH class is added to the third-party BreachingCharge `DestroyableObjects` list.
-
-### Raid tools show on the wrong item
-
-Check:
-
-- `EnableVanillaToolRaiding` is enabled.
-- `AllowRaidTools` is correct for that class.
-- `DefaultAllowRaidTools` is not allowing everything by accident.
-- Tool classname is only added to `RaidTools` if you want it to raid.
-
-### Storage does not restore items
+### Virtual storage does not restore
 
 Check:
-
-- `EnableVirtualContainerStorage` is enabled.
-- The class is inside `VirtualStorageEnabledContainers`.
-- The class is not inside `VirtualStorageExcludedContainers`.
-- The container does not already have live items when restore runs, because restore can be blocked to avoid duplication.
-
-### Discord webhook does not send
-
-Check:
-
-- The correct webhook toggle is enabled.
-- The webhook URL is not still set to `PUT WEBHOOK URL HERE`.
-- Your Discord webhook URL is valid.
-- Server firewall allows outgoing webhook requests.
+- Container class is in `VirtualStorageEnabledContainers`.
+- Container class is not in `VirtualStorageExcludedContainers`.
+- The container does not already contain live items.
+- The virtual storage file exists.
+- Logs are enabled while debugging.
 
 ---
 
-## Server owner notes
+## Updating from an older version
 
-- Keep backups of all APH JSON files before editing.
-- Change one feature at a time, restart, and test.
-- Use exact classnames.
-- For third-party mods, APH can only work correctly if that mod also knows APH is a valid raid target.
-- Use base classes for easier setup only when the third-party mod supports base/inheritance matching.
-- Use exact child classnames when the third-party mod does not support inheritance.
+1. Back up your old PBO and profile configs.
+2. Replace the updated script files.
+3. Rebuild and repack the PBO.
+4. Start a test server first.
+5. Compare your old `aph_storage.json` with the current config.
+6. Manually add missing sections such as `DismantleToolActions`.
+7. Test selected Headgear and Gloves storage/swap.
+8. Test dismantling tool actions.
+9. Test raiding and virtual storage before pushing live.
 
 ---
 
-## Current supplied config files covered by this guide
+## Recommended GitHub structure
 
-- `aph_storage.json`
-- `aph_raid_schedule.json`
-- `aph_storage_raid_target_control.json`
-- `breachingcharge.json` example
+```txt
+APH_Havoc_Storage/
+├── Scripts/
+├── Config_Examples/
+│   ├── aph_storage.json
+│   ├── aph_raid_schedule.json
+│   └── aph_storage_raid_target_control.json
+├── docs/
+│   └── assets/
+├── patches/
+├── README.md
+└── CHANGELOG.md
+```
 
+---
+
+## Changelog
+
+### V5
+- Fixed selected `Headgear` not storing/swapping.
+- Fixed selected `Gloves` not storing/swapping.
+- Added direct `InventoryLocation` movement for sensitive gear slots.
+- Preserved normal storage/swap behavior for other clothing slots.
+- Kept configurable dismantle tool action support.
+- Kept placement wheel/action support.
+
+### V4
+- Fixed compile error caused by invalid `EntityAI.ConfigGetText` use.
+- Replaced item config reads with `GetGame().ConfigGetText` / `GetGame().ConfigGetTextArray`.
+
+### V3
+- Improved held-item swap logic.
+- Removed dead-end occupied-slot return path.
+- Added slot fallback handling.
+
+### V2
+- Split dismantle action handling into fixed action variants.
+- Added better config fallback for dismantle tool actions.
+
+### V1
+- Added first Headgear support pass.
+- Added initial configurable dismantle tool actions.
+
+---
+
+## Credits
+
+Created for APH Havoc Storage.
+
+Maintained with DayZ modding support from APH MISFITNO1.
