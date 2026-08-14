@@ -1,5 +1,21 @@
 # APH Havoc Storage / APH Core JSON Configuration Guide
 
+## Updated APH Core / Storage functionality
+
+This edition also documents the newer APH systems added after the original Storage guide:
+
+- APH Armoury / Gun Bench JSON
+- server-driven/paged Gun Bench menu
+- context-sensitive attached-item repair filtering
+- exact-class repair visibility
+- nested attachment detection
+- configurable required parts and tool wear
+- world-repair restriction
+- Gun Bench config validation/migration
+- Gun Bench integration with the APH Storage reload system
+
+---
+
 This document covers the JSON configuration used by **APH Havoc Storage / APH Core** only.
 
 It includes:
@@ -1363,7 +1379,869 @@ For bugs, config problems, class compatibility problems, or unexpected behavior,
 - classname involved
 - steps to reproduce
 
+**Discord:** https://discord.gg/rebirthnetwork
+
+
 ---
+
+# APH Gun Bench / Armoury JSON
+
+## File location
+
+```text
+$profile:aph_mods/aph_storage/aph_gun_bench.json
+```
+
+With `-profiles=Config`, this normally resolves to:
+
+```text
+DayZServer\Config\aph_mods\aph_storage\aph_gun_bench.json
+```
+
+The Gun Bench has its own JSON so its repair/crafting catalog can be changed without mixing thousands of recipes into the main `aph_storage.json`.
+
+## What the Gun Bench JSON controls
+
+- which APH bench classes are recognised as Gun Benches
+- which bench attachment slots count as weapon, magazine, and attachment positions
+- default repair duration
+- target health after repair
+- which weapon/magazine/attachment classes are considered repairable
+- whether those configured classes are blocked from normal world repair
+- where required repair parts are taken from
+- global/default required repair parts
+- whether the custom Gun Bench menu is enabled
+- menu categories
+- individual REPAIR recipes
+- individual CRAFT recipes
+- per-recipe required parts
+- result class and result quantity for crafting
+- per-recipe operation time
+- per-recipe repair target health
+
+---
+
+## Main Gun Bench settings
+
+| Setting | Meaning |
+|---|---|
+| `EnableGunBenchRepair` | Master switch for APH Gun Bench repair logic. |
+| `GunBenchRepairTimeSeconds` | Default repair duration. |
+| `GunBenchTargetHealth01` | Target health after repair, from `0.0` to `1.0`. |
+| `GunBenchClassNames` | Classes APH recognises as valid Gun Benches. |
+| `GunBenchWeaponSlotNames` | Bench slots considered weapon positions. |
+| `GunBenchMagazineSlotNames` | Bench slots considered magazine positions. |
+| `GunBenchAttachmentSlotNames` | Bench slots considered attachment positions. |
+| `GunBenchWeaponClassNames` | Weapon classes/bases allowed by the repair system. |
+| `GunBenchMagazineClassNames` | Magazine classes/bases allowed by the repair system. |
+| `GunBenchAttachmentClassNames` | Attachment classes/bases allowed by the repair system. |
+| `GunBenchDisableWorldRepairForListedClasses` | Forces listed/configured repair classes through the APH Gun Bench instead of normal world repair. |
+| `GunBenchRequiredPartsSource` | Controls where APH looks for required repair parts. |
+| `GunBenchRequiredParts` | Global/default repair requirements. |
+| `EnableGunBenchMenu` | Enables the APH Armoury GUI. |
+| `GunBenchMenuCategories` | Ordered category list displayed by the UI. |
+| `GunBenchMenuRecipes` | Full recipe catalog. |
+
+---
+
+## Required-parts source modes
+
+`GunBenchRequiredPartsSource` supports:
+
+```text
+0 = player inventory
+1 = bench cargo / direct bench attachments
+2 = bench first, then player inventory
+```
+
+Recommended for the physical Armoury workflow:
+
+```json
+"GunBenchRequiredPartsSource": 1
+```
+
+This makes attached tools and bench-stored materials count without pulling unrelated materials from the player's inventory.
+
+---
+
+## Required part object
+
+Each required part uses:
+
+```json
+{
+  "ClassName": "WeaponCleaningKit",
+  "RequiredQuantity": 1,
+  "ConsumeQuantity": 0,
+  "ConsumeHealth": 20.0,
+  "CountByQuantity": false
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `ClassName` | Required item classname. |
+| `RequiredQuantity` | Amount that must be available. |
+| `ConsumeQuantity` | Quantity removed when the operation succeeds. |
+| `ConsumeHealth` | Tool health consumed instead of deleting the tool. |
+| `CountByQuantity` | When true, stack quantity is counted rather than entity count. |
+
+### Reusable tools
+
+A reusable tool can be required without being deleted:
+
+```json
+{
+  "ClassName": "WeaponCleaningKit",
+  "RequiredQuantity": 1,
+  "ConsumeQuantity": 0,
+  "ConsumeHealth": 20.0,
+  "CountByQuantity": false
+}
+```
+
+This requires one Cleaning Kit and damages it by 20 health on successful use.
+
+### Consumable materials
+
+```json
+{
+  "ClassName": "Rag",
+  "RequiredQuantity": 2,
+  "ConsumeQuantity": 2,
+  "ConsumeHealth": 0.0,
+  "CountByQuantity": true
+}
+```
+
+This requires two Rags and consumes two.
+
+---
+
+# Gun Bench REPAIR recipe
+
+```json
+{
+  "Enabled": true,
+  "CategoryName": "Suppressors",
+  "DisplayName": "Repair Suppressor",
+  "Operation": "REPAIR",
+  "TargetClassNames": [
+    "MyMod_Suppressor"
+  ],
+  "ResultClassName": "",
+  "ResultQuantity": 1,
+  "TargetHealth01": 1.0,
+  "OperationTimeSeconds": 12.0,
+  "RequiredParts": [
+    {
+      "ClassName": "WeaponCleaningKit",
+      "RequiredQuantity": 1,
+      "ConsumeQuantity": 0,
+      "ConsumeHealth": 20.0,
+      "CountByQuantity": false
+    }
+  ]
+}
+```
+
+For REPAIR recipes, `TargetClassNames` is the important field.
+
+---
+
+# Gun Bench CRAFT recipe
+
+```json
+{
+  "Enabled": true,
+  "CategoryName": "Tier 3 Weapons",
+  "DisplayName": "Craft M4-A1",
+  "Operation": "CRAFT",
+  "TargetClassNames": [
+    "M4A1"
+  ],
+  "ResultClassName": "M4A1",
+  "ResultQuantity": 1,
+  "TargetHealth01": 1.0,
+  "OperationTimeSeconds": 30.0,
+  "RequiredParts": [
+    {
+      "ClassName": "MetalWire",
+      "RequiredQuantity": 2,
+      "ConsumeQuantity": 2,
+      "ConsumeHealth": 0.0,
+      "CountByQuantity": true
+    },
+    {
+      "ClassName": "Rag",
+      "RequiredQuantity": 4,
+      "ConsumeQuantity": 4,
+      "ConsumeHealth": 0.0,
+      "CountByQuantity": true
+    }
+  ]
+}
+```
+
+For CRAFT recipes:
+
+- `ResultClassName` is the item APH creates.
+- `ResultQuantity` controls how many are created.
+- `RequiredParts` controls crafting materials/tools.
+- `OperationTimeSeconds` controls duration.
+
+---
+
+# New context-sensitive REPAIR menu
+
+The current APH repair menu is **attachment-aware**.
+
+In REPAIR mode:
+
+- APH checks the actual items attached to the Gun Bench.
+- Only categories containing a matching attached repair class are shown.
+- Recipes for classes that are not attached are hidden.
+- Exact classname matching is used for the live menu visibility filter.
+- Nested attachments on an attached weapon are also checked.
+- Loose items sitting only in bench cargo do not create repair categories.
+- CRAFT mode remains the full configured crafting catalog.
+
+Example:
+
+```text
+Attached to bench:
+- M4A1
+- M4 suppressor
+- ACOG optic
+
+Visible REPAIR content:
+- matching weapon category/recipe
+- matching suppressor category/recipe
+- matching optic category/recipe
+
+Hidden:
+- unrelated rifles
+- unrelated magazines
+- unrelated attachments
+- anything not physically attached
+```
+
+This prevents the repair menu from showing thousands of irrelevant repair recipes.
+
+---
+
+# Nested attachment detection
+
+If a weapon is mounted on the bench and it has attachments fitted to the weapon, APH can detect those nested items for the REPAIR menu.
+
+For example:
+
+```text
+Gun Bench
+└─ M4A1
+   ├─ optic
+   ├─ suppressor
+   ├─ buttstock
+   ├─ handguard
+   └─ weapon light
+```
+
+Matching repair categories for those fitted components can appear without requiring each component to be separately placed in bench cargo.
+
+---
+
+# World repair restriction
+
+When:
+
+```json
+"GunBenchDisableWorldRepairForListedClasses": true
+```
+
+classes governed by the APH Gun Bench repair lists are intended to use the bench workflow instead of normal world repair actions.
+
+This is useful on servers where you want:
+
+- repair tools stored at the Armoury
+- physical repair stations
+- controlled repair economy
+- weapon/attachment repair to require specific materials
+- players to stop repairing high-end equipment anywhere in the world
+
+---
+
+# Gun Bench menu / UI behavior
+
+The APH Armoury UI now uses server-driven paging instead of transferring the full recipe JSON to the client.
+
+The client requests:
+
+1. categories and recipe counts
+2. one category/mode page
+3. details for the selected recipe
+
+This is important for large weapon packs where `aph_gun_bench.json` can contain thousands of recipes.
+
+The menu also supports:
+
+- REPAIR / CRAFT mode switching
+- recipe paging
+- selected item preview
+- required-items display
+- operation time
+- status output
+- START button
+- CLOSE button
+- ESC close
+- player-control lock while open
+- quickbar/HUD hiding while open
+- HUD restoration when closed
+
+---
+
+# Item display names and descriptions
+
+When possible, APH uses the actual DayZ/mod item configuration instead of showing only raw classnames.
+
+The selected item can use:
+
+- the runtime entity display name
+- `CfgVehicles <ClassName> displayName`
+- `CfgVehicles <ClassName> descriptionShort`
+- DayZ stringtable translation
+
+This means a recipe may use:
+
+```json
+"TargetClassNames": [
+  "A6_Bipod_M249"
+]
+```
+
+while the UI displays the mod's proper localized item name and description.
+
+---
+
+# Gun Bench configuration validation
+
+When the JSON is loaded, APH validates important arrays and values.
+
+Current validation behavior includes:
+
+- invalid/non-positive repair time falls back to the default
+- invalid target-health values fall back to `1.0`
+- required bench classes are re-added when missing
+- empty slot arrays are repopulated
+- empty weapon/magazine/attachment class arrays are repopulated
+- empty global required-parts arrays are repopulated
+- `GunBenchRequiredPartsSource` outside `0-2` falls back to `1`
+- blank category/recipe arrays from older configs are repopulated
+- recipe `TargetClassNames` is repaired when empty
+- recipe `RequiredParts` is populated when empty
+- invalid result quantity falls back to `1`
+
+After server-side validation, the config is saved back to disk.
+
+---
+
+# Gun Bench config reload
+
+The Gun Bench is tied into the existing APH Storage reload system.
+
+A storage config reload refreshes the APH server-side configuration set, including the Gun Bench configuration, then the open Gun Bench UI receives a lightweight invalidation/refresh instead of the entire JSON being pushed to every client.
+
+No separate Gun Bench reload keybind is required.
+
+---
+
+# Full `aph_gun_bench.json` Example
+
+```json
+{
+  "EnableGunBenchRepair": true,
+  "GunBenchRepairTimeSeconds": 12.0,
+  "GunBenchTargetHealth01": 1.0,
+  "GunBenchClassNames": [
+    "APH_Storage_Armoury_Table_With_GunStnad",
+    "APH_Storage_Armoury_Table1_Base"
+  ],
+  "GunBenchWeaponSlotNames": [
+    "RifleStand",
+    "PistolStand"
+  ],
+  "GunBenchMagazineSlotNames": [
+    "Magazine",
+    "Magazine2",
+    "Magazine3",
+    "Magazine4",
+    "Magazine5",
+    "Magazine6"
+  ],
+  "GunBenchAttachmentSlotNames": [
+    "Optic",
+    "Buttstock",
+    "HandGaurd_1",
+    "Suppressor_1",
+    "Suppressor_2",
+    "WeaponLight_1"
+  ],
+  "GunBenchRequiredParts": [
+    {
+      "ClassName": "WeaponCleaningKit",
+      "RequiredQuantity": 1,
+      "ConsumeQuantity": 0,
+      "ConsumeHealth": 20.0,
+      "CountByQuantity": false
+    },
+    {
+      "ClassName": "Rag",
+      "RequiredQuantity": 2,
+      "ConsumeQuantity": 2,
+      "ConsumeHealth": 0.0,
+      "CountByQuantity": true
+    },
+    {
+      "ClassName": "MetalWire",
+      "RequiredQuantity": 1,
+      "ConsumeQuantity": 1,
+      "ConsumeHealth": 0.0,
+      "CountByQuantity": true
+    }
+  ],
+  "GunBenchWeaponClassNames": [
+    "Weapon_Base"
+  ],
+  "GunBenchMagazineClassNames": [
+    "Magazine_Base"
+  ],
+  "GunBenchAttachmentClassNames": [
+    "ItemSuppressor",
+    "ItemOptics_Base",
+    "ItemOptics",
+    "Buttstock_Base",
+    "Handguard_Base"
+  ],
+  "GunBenchDisableWorldRepairForListedClasses": true,
+  "GunBenchRequiredPartsSource": 1,
+  "EnableGunBenchMenu": true,
+  "GunBenchMenuCategories": [
+    "Scopes",
+    "Bipods",
+    "Grips",
+    "Buttstocks",
+    "Weapon Lights",
+    "Suppressors",
+    "Tier 1 Weapons",
+    "Tier 2 Weapons",
+    "Tier 3 Weapons"
+  ],
+  "GunBenchMenuRecipes": [
+    {
+      "Enabled": true,
+      "CategoryName": "Scopes",
+      "DisplayName": "Repair Scope",
+      "Operation": "REPAIR",
+      "TargetClassNames": [
+        "ItemOptics_Base",
+        "ItemOptics"
+      ],
+      "ResultClassName": "",
+      "ResultQuantity": 1,
+      "TargetHealth01": 1.0,
+      "OperationTimeSeconds": 12.0,
+      "RequiredParts": [
+        {
+          "ClassName": "WeaponCleaningKit",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 0,
+          "ConsumeHealth": 20.0,
+          "CountByQuantity": false
+        },
+        {
+          "ClassName": "Rag",
+          "RequiredQuantity": 2,
+          "ConsumeQuantity": 2,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        },
+        {
+          "ClassName": "MetalWire",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 1,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        }
+      ]
+    },
+    {
+      "Enabled": true,
+      "CategoryName": "Bipods",
+      "DisplayName": "Repair Bipod",
+      "Operation": "REPAIR",
+      "TargetClassNames": [
+        "A6_Bipod_Base"
+      ],
+      "ResultClassName": "",
+      "ResultQuantity": 1,
+      "TargetHealth01": 1.0,
+      "OperationTimeSeconds": 12.0,
+      "RequiredParts": [
+        {
+          "ClassName": "WeaponCleaningKit",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 0,
+          "ConsumeHealth": 20.0,
+          "CountByQuantity": false
+        },
+        {
+          "ClassName": "Rag",
+          "RequiredQuantity": 2,
+          "ConsumeQuantity": 2,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        },
+        {
+          "ClassName": "MetalWire",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 1,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        }
+      ]
+    },
+    {
+      "Enabled": true,
+      "CategoryName": "Grips",
+      "DisplayName": "Repair Grip",
+      "Operation": "REPAIR",
+      "TargetClassNames": [
+        "A6_ForeGrip_Base"
+      ],
+      "ResultClassName": "",
+      "ResultQuantity": 1,
+      "TargetHealth01": 1.0,
+      "OperationTimeSeconds": 12.0,
+      "RequiredParts": [
+        {
+          "ClassName": "WeaponCleaningKit",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 0,
+          "ConsumeHealth": 20.0,
+          "CountByQuantity": false
+        },
+        {
+          "ClassName": "Rag",
+          "RequiredQuantity": 2,
+          "ConsumeQuantity": 2,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        },
+        {
+          "ClassName": "MetalWire",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 1,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        }
+      ]
+    },
+    {
+      "Enabled": true,
+      "CategoryName": "Buttstocks",
+      "DisplayName": "Repair Buttstock",
+      "Operation": "REPAIR",
+      "TargetClassNames": [
+        "M4_OEBttstck",
+        "M4_MPBttstck",
+        "M4_CQBBttstck",
+        "AK_WoodBttstck",
+        "AK74_WoodBttstck"
+      ],
+      "ResultClassName": "",
+      "ResultQuantity": 1,
+      "TargetHealth01": 1.0,
+      "OperationTimeSeconds": 12.0,
+      "RequiredParts": [
+        {
+          "ClassName": "WeaponCleaningKit",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 0,
+          "ConsumeHealth": 20.0,
+          "CountByQuantity": false
+        },
+        {
+          "ClassName": "Rag",
+          "RequiredQuantity": 2,
+          "ConsumeQuantity": 2,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        },
+        {
+          "ClassName": "MetalWire",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 1,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        }
+      ]
+    },
+    {
+      "Enabled": true,
+      "CategoryName": "Weapon Lights",
+      "DisplayName": "Repair Weapon Light",
+      "Operation": "REPAIR",
+      "TargetClassNames": [
+        "UniversalLight",
+        "TLRLight"
+      ],
+      "ResultClassName": "",
+      "ResultQuantity": 1,
+      "TargetHealth01": 1.0,
+      "OperationTimeSeconds": 12.0,
+      "RequiredParts": [
+        {
+          "ClassName": "WeaponCleaningKit",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 0,
+          "ConsumeHealth": 20.0,
+          "CountByQuantity": false
+        },
+        {
+          "ClassName": "Rag",
+          "RequiredQuantity": 2,
+          "ConsumeQuantity": 2,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        },
+        {
+          "ClassName": "MetalWire",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 1,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        }
+      ]
+    },
+    {
+      "Enabled": true,
+      "CategoryName": "Suppressors",
+      "DisplayName": "Repair Suppressor",
+      "Operation": "REPAIR",
+      "TargetClassNames": [
+        "ItemSuppressor"
+      ],
+      "ResultClassName": "",
+      "ResultQuantity": 1,
+      "TargetHealth01": 1.0,
+      "OperationTimeSeconds": 12.0,
+      "RequiredParts": [
+        {
+          "ClassName": "WeaponCleaningKit",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 0,
+          "ConsumeHealth": 20.0,
+          "CountByQuantity": false
+        },
+        {
+          "ClassName": "Rag",
+          "RequiredQuantity": 2,
+          "ConsumeQuantity": 2,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        },
+        {
+          "ClassName": "MetalWire",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 1,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        }
+      ]
+    },
+    {
+      "Enabled": true,
+      "CategoryName": "Tier 1 Weapons",
+      "DisplayName": "Repair BK-18",
+      "Operation": "REPAIR",
+      "TargetClassNames": [
+        "BK18"
+      ],
+      "ResultClassName": "",
+      "ResultQuantity": 1,
+      "TargetHealth01": 1.0,
+      "OperationTimeSeconds": 12.0,
+      "RequiredParts": [
+        {
+          "ClassName": "WeaponCleaningKit",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 0,
+          "ConsumeHealth": 20.0,
+          "CountByQuantity": false
+        },
+        {
+          "ClassName": "Rag",
+          "RequiredQuantity": 2,
+          "ConsumeQuantity": 2,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        },
+        {
+          "ClassName": "MetalWire",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 1,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        }
+      ]
+    },
+    {
+      "Enabled": true,
+      "CategoryName": "Tier 2 Weapons",
+      "DisplayName": "Repair SK 59/66",
+      "Operation": "REPAIR",
+      "TargetClassNames": [
+        "SKS"
+      ],
+      "ResultClassName": "",
+      "ResultQuantity": 1,
+      "TargetHealth01": 1.0,
+      "OperationTimeSeconds": 12.0,
+      "RequiredParts": [
+        {
+          "ClassName": "WeaponCleaningKit",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 0,
+          "ConsumeHealth": 20.0,
+          "CountByQuantity": false
+        },
+        {
+          "ClassName": "Rag",
+          "RequiredQuantity": 2,
+          "ConsumeQuantity": 2,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        },
+        {
+          "ClassName": "MetalWire",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 1,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        }
+      ]
+    },
+    {
+      "Enabled": true,
+      "CategoryName": "Tier 3 Weapons",
+      "DisplayName": "Repair M4-A1",
+      "Operation": "REPAIR",
+      "TargetClassNames": [
+        "M4A1"
+      ],
+      "ResultClassName": "",
+      "ResultQuantity": 1,
+      "TargetHealth01": 1.0,
+      "OperationTimeSeconds": 12.0,
+      "RequiredParts": [
+        {
+          "ClassName": "WeaponCleaningKit",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 0,
+          "ConsumeHealth": 20.0,
+          "CountByQuantity": false
+        },
+        {
+          "ClassName": "Rag",
+          "RequiredQuantity": 2,
+          "ConsumeQuantity": 2,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        },
+        {
+          "ClassName": "MetalWire",
+          "RequiredQuantity": 1,
+          "ConsumeQuantity": 1,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        }
+      ]
+    },
+    {
+      "Enabled": false,
+      "CategoryName": "Tier 3 Weapons",
+      "DisplayName": "Craft M4-A1 (Example)",
+      "Operation": "CRAFT",
+      "TargetClassNames": [
+        "M4A1"
+      ],
+      "ResultClassName": "M4A1",
+      "ResultQuantity": 1,
+      "TargetHealth01": 1.0,
+      "OperationTimeSeconds": 30.0,
+      "RequiredParts": [
+        {
+          "ClassName": "MetalWire",
+          "RequiredQuantity": 2,
+          "ConsumeQuantity": 2,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        },
+        {
+          "ClassName": "Rag",
+          "RequiredQuantity": 4,
+          "ConsumeQuantity": 4,
+          "ConsumeHealth": 0.0,
+          "CountByQuantity": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+> On a heavily modded server, the real `GunBenchMenuRecipes` array can be much larger. The format stays the same: each weapon, magazine, or attachment can have its own REPAIR and/or CRAFT recipe.
+
+---
+
+# APH Storage / Gun Bench new-function summary
+
+The newer APH Storage/Core functionality covered by this updated guide now includes:
+
+- dedicated `aph_gun_bench.json`
+- configurable Gun Bench classes and slots
+- configurable repairable weapon/magazine/attachment classes
+- physical bench required-part sourcing
+- reusable tool health consumption
+- per-recipe material consumption
+- per-recipe repair time
+- per-recipe repair target health
+- per-recipe craft result and quantity
+- world-repair restriction for configured classes
+- server-owned Gun Bench recipe catalog
+- paged Gun Bench client UI
+- context-sensitive REPAIR categories
+- exact attached-class filtering
+- nested weapon-attachment detection
+- hiding unrelated repair recipes
+- real display-name/description detection
+- Gun Bench HUD/quickbar handling
+- Gun Bench close/ESC handling
+- Gun Bench config validation/migration
+- Gun Bench reload through the APH Storage reload path
+- large mod-pack recipe support without full client JSON sync
+
+---
+
+# APH Storage JSON Paths Summary
+
+| System | File |
+|---|---|
+| Main Storage | `$profile:aph_mods/aph_storage/aph_storage.json` |
+| Gun Bench / Armoury | `$profile:aph_mods/aph_storage/aph_gun_bench.json` |
+| Raid Schedule | `$profile:aph_mods/aph_storage/aph_raid_schedule.json` |
+| Raid Target Control | `$profile:aph_mods/aph_storage/aph_storage_raid_target_control.json` |
+
+
 
 ## Credits
 
